@@ -272,6 +272,12 @@ gncOwnerApplyPayment (const GncOwner *owner, Transaction **preset_txn, GList *lo
                       gnc_numeric amount, gnc_numeric exch, Timespec date,
                       const char *memo, const char *num, gboolean auto_pay);
 
+void
+gncOwnerApplyPaymentOld (const GncOwner *owner, Transaction *txn, GList *lots,
+                      Account *posted_acc, Account *xfer_acc,
+                      gnc_numeric amount, gnc_numeric exch, Timespec date,
+                      const char *memo, const char *num, gboolean auto_pay);
+
 /** Helper function to find a split in lot that best offsets target_value
  *  Obviously it should be of opposite sign.
  * If there are more splits of opposite sign the following

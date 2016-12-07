@@ -1417,6 +1417,54 @@ gncOwnerApplyPayment (const GncOwner *owner, Transaction **preset_txn, GList *lo
     g_list_free (selected_lots);
 }
 
+/*
+ * Create a payment of "amount" for the owner and match it with
+ * the set of lots passed in.
+ * If
+ * - no lots were given
+ * - auto_pay is true
+ * then all open lots for the owner are considered.
+ */
+void
+gncOwnerApplyPaymentOld (const GncOwner *owner, Transaction *txn, GList *lots,
+                      Account *posted_acc, Account *xfer_acc,
+                      gnc_numeric amount, gnc_numeric exch, Timespec date,
+                      const char *memo, const char *num, gboolean auto_pay)
+{
+    GNCLot *payment_lot = NULL;
+    GList *selected_lots = NULL;
+
+    Transaction **preset_txn = NULL;
+
+    /* Verify our arguments */
+    if (!owner || !posted_acc
+               || (!xfer_acc && !gnc_numeric_zero_p (amount)) ) return;
+    g_return_if_fail (owner->owner.undefined);
+
+    if (NULL != txn)
+        preset_txn = &(txn);
+
+    /* If there's a real amount to transfer create a lot for this payment */
+    if (!gnc_numeric_zero_p (amount))
+        payment_lot = gncOwnerCreatePaymentLot (owner, preset_txn, posted_acc, xfer_acc,
+                                                amount, exch, date, memo, num);
+
+    if (lots)
+        selected_lots = lots;
+    else if (auto_pay)
+        selected_lots = xaccAccountFindOpenLots (posted_acc, gncOwnerLotMatchOwnerFunc,
+                        (gpointer)owner, NULL);
+
+    /* And link the selected lots and the payment lot together as well as possible.
+     * If the payment was bigger than the selected documents/overpayments, only
+     * part of the payment will be used. Similarly if more documents were selected
+     * than the payment value set, not all documents will be marked as paid. */
+    if (payment_lot)
+        selected_lots = g_list_prepend (selected_lots, payment_lot);
+    gncOwnerAutoApplyPaymentsWithLots (owner, selected_lots);
+    g_list_free (selected_lots);
+}
+
 GList *
 gncOwnerGetAccountTypesList (const GncOwner *owner)
 {
